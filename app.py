@@ -43,6 +43,27 @@ kpi = load("kpi").iloc[0]
 MONTH_ORDER = sorted(load("cause_month").ym)
 MLABEL = {m: pd.Period(m).strftime("%b %y") for m in MONTH_ORDER}
 
+cm_all = load("carrier_month")
+with st.sidebar:
+    st.header("Filters")
+    classes = st.multiselect(
+        "Carrier class", sorted(cm_all.carrier_class.unique()),
+        default=sorted(cm_all.carrier_class.unique()),
+        help="Applies to the Carriers & seasons tab")
+    m_from, m_to = st.select_slider(
+        "Months", options=MONTH_ORDER, value=(MONTH_ORDER[0], MONTH_ORDER[-1]),
+        format_func=lambda m: MLABEL[m],
+        help="Applies to time-based views (carrier heatmaps, daily trend)")
+    MONTHS_SEL = [m for m in MONTH_ORDER if m_from <= m <= m_to]
+
+    st.divider()
+    st.markdown("**About**")
+    st.caption(
+        "Every US domestic flight over 12 months, from the official US DOT/BTS "
+        "on-time performance records. A flight counts as *delayed* when it arrives "
+        "≥15 minutes late (DOT standard).")
+    st.caption(f"Data window: {kpi.date_min} → {kpi.date_max} · retrieved Jul 2026")
+
 st.title("🛫 US Flight Delay Risk")
 st.caption(
     f"7,027,258 US domestic flights · {kpi.date_min} → {kpi.date_max} · "
@@ -62,18 +83,14 @@ tab_overview, tab_when, tab_where, tab_book = st.tabs(
 
 # ------------------------------------------------------------------ carriers
 with tab_overview:
-    cm = load("carrier_month")
-    classes = st.multiselect(
-        "Carrier class", sorted(cm.carrier_class.unique()),
-        default=sorted(cm.carrier_class.unique()), key="classes")
-    sel = cm[cm.carrier_class.isin(classes)]
+    sel = cm_all[cm_all.carrier_class.isin(classes) & cm_all.ym.isin(MONTHS_SEL)]
     if sel.empty:
-        st.warning("Select at least one carrier class.")
+        st.warning("Select at least one carrier class and month in the sidebar.")
         st.stop()
 
     left, right = st.columns([3, 2])
     with left:
-        heat = (sel.groupby(["carrier_name", "ym"]).delayed.mean().unstack()[MONTH_ORDER] * 100)
+        heat = (sel.groupby(["carrier_name", "ym"]).delayed.mean().unstack()[MONTHS_SEL] * 100)
         heat = heat.dropna()
         heat = heat.loc[heat.mean(axis=1).sort_values().index]
         heat.columns = [MLABEL[m] for m in heat.columns]
@@ -99,8 +116,8 @@ with tab_overview:
 
     with st.expander("Cancellations by carrier and month"):
         cc = load("carrier_cancel")
-        heat2 = (cc[cc.carrier_name.isin(sel.carrier_name.unique())]
-                 .groupby(["carrier_name", "ym"]).cancelled.mean().unstack()[MONTH_ORDER] * 100)
+        heat2 = (cc[cc.carrier_name.isin(sel.carrier_name.unique()) & cc.ym.isin(MONTHS_SEL)]
+                 .groupby(["carrier_name", "ym"]).cancelled.mean().unstack()[MONTHS_SEL] * 100)
         heat2 = heat2.dropna()
         heat2 = heat2.loc[heat2.mean(axis=1).sort_values().index]
         heat2.columns = [MLABEL[m] for m in heat2.columns]
@@ -149,6 +166,7 @@ with tab_when:
 
     daily = load("daily")
     daily["FlightDate"] = pd.to_datetime(daily.FlightDate)
+    daily = daily[daily.FlightDate.dt.to_period("M").astype(str).isin(MONTHS_SEL)]
     roll = daily.set_index("FlightDate").delayed.rolling(7, center=True).mean() * 100
     fig = go.Figure()
     fig.add_scatter(x=daily.FlightDate, y=daily.delayed * 100, mode="lines",
@@ -157,6 +175,8 @@ with tab_when:
     for label, a, b in [("Jul 4", "2025-06-30", "2025-07-07"),
                         ("Thanksgiving", "2025-11-24", "2025-12-01"),
                         ("Christmas/NY", "2025-12-19", "2026-01-04")]:
+        if daily.empty or pd.Timestamp(a) > daily.FlightDate.max() or pd.Timestamp(b) < daily.FlightDate.min():
+            continue
         fig.add_vrect(x0=a, x1=b, fillcolor=ORANGE, opacity=0.15, line_width=0)
         fig.add_annotation(x=pd.Timestamp(a), y=52, text=f"<b>{label}</b>",
                            font=dict(size=10, color=ORANGE), showarrow=False, xanchor="left")
