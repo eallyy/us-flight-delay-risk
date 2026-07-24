@@ -1,0 +1,2 @@
+flights,delayed_share,cancelled_share,mean_delay_when_delayed,carriers,airports,routes,date_min,date_max
+7027258,0.22791539104622,0.01810692022407602,73.63799406809007,14,356,7044,2025-04-01,2026-03-31
