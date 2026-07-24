@@ -74,11 +74,11 @@ with tab_overview:
     left, right = st.columns([3, 2])
     with left:
         heat = (sel.groupby(["carrier_name", "ym"]).delayed.mean().unstack()[MONTH_ORDER] * 100)
+        heat = heat.dropna()
         heat = heat.loc[heat.mean(axis=1).sort_values().index]
+        heat.columns = [MLABEL[m] for m in heat.columns]
         fig = px.imshow(heat.round(0), color_continuous_scale="Oranges", aspect="auto",
                         text_auto=".0f", labels=dict(color="% delayed"))
-        fig.update_xaxes(ticktext=[MLABEL[m] for m in MONTH_ORDER],
-                         tickvals=list(range(len(MONTH_ORDER))))
         fig.update_layout(title="<b>Summer is the great equalizer — every carrier degrades</b>"
                           "<br><sup>% delayed by carrier and month · sorted by punctuality</sup>",
                           height=460, coloraxis_showscale=False)
@@ -101,11 +101,11 @@ with tab_overview:
         cc = load("carrier_cancel")
         heat2 = (cc[cc.carrier_name.isin(sel.carrier_name.unique())]
                  .groupby(["carrier_name", "ym"]).cancelled.mean().unstack()[MONTH_ORDER] * 100)
+        heat2 = heat2.dropna()
         heat2 = heat2.loc[heat2.mean(axis=1).sort_values().index]
+        heat2.columns = [MLABEL[m] for m in heat2.columns]
         fig = px.imshow(heat2.round(1), color_continuous_scale="Oranges", aspect="auto",
                         text_auto=".1f", labels=dict(color="% cancelled"))
-        fig.update_xaxes(ticktext=[MLABEL[m] for m in MONTH_ORDER],
-                         tickvals=list(range(len(MONTH_ORDER))))
         fig.update_layout(height=420, coloraxis_showscale=False)
         st.plotly_chart(fig, use_container_width=True)
 
