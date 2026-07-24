@@ -34,13 +34,21 @@ Final individual project for the MSc Data Visualization course (Summer 2026).
 | US DOT / BTS On-Time Reporting Carrier On-Time Performance (12 monthly files, Apr 2025 – Mar 2026) | flights, delays, causes, cancellations | [transtats.bts.gov/PREZIP](https://www.transtats.bts.gov/PREZIP/) |
 | OurAirports | airport coordinates | [ourairports.com/data](https://ourairports.com/data/) |
 
-The full combined dataset (7,027,258 rows, 162 MB parquet) exceeds GitHub's in-repo file
-limit, so it is attached as a release asset:
-**[flights_2025_2026.parquet (Releases → data-v1)](../../releases/tag/data-v1)**.
-The repo itself ships the pre-aggregated tables in [`data/`](data/) (produced by
-`scripts/make_dashboard_data.py`). To rebuild everything from scratch instead: download
-the monthly zips from the BTS link above into `data/raw/bts/`, then run
-`scripts/prepare_flights.py` followed by `scripts/make_dashboard_data.py`.
+**The full dataset ships inside this repo.** The combined file (7,027,258 rows, 162 MB)
+exceeds GitHub's 100 MB per-file limit, so it lives in [`data/full/`](data/full/) as four
+quarterly parquet parts. Reassemble it with one call:
+
+```python
+from scripts.load_full_data import load_flights
+df = load_flights()  # 7,027,258 rows, Apr 2025 - Mar 2026
+```
+
+It is also attached as a single file under
+[Releases → data-v1](../../releases/tag/data-v1). The dashboard itself reads the small
+pre-aggregated tables in [`data/`](data/) (produced by `scripts/make_dashboard_data.py`).
+To rebuild everything from the original source instead: download the monthly zips from
+the BTS link above into `data/raw/bts/`, then run `scripts/prepare_flights.py` followed
+by `scripts/make_dashboard_data.py`.
 
 ## Run locally
 
