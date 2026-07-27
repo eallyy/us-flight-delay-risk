@@ -96,7 +96,7 @@ with tab_overview:
         heat.columns = [MLABEL[m] for m in heat.columns]
         fig = px.imshow(heat.round(0), color_continuous_scale="Oranges", aspect="auto",
                         text_auto=".0f", labels=dict(color="% delayed"))
-        fig.update_layout(title="<b>Summer is the great equalizer — every carrier degrades</b>"
+        fig.update_layout(title="<b>Summer is the great equalizer — the gap between carriers narrows</b>"
                           "<br><sup>% delayed by carrier and month · sorted by punctuality</sup>",
                           height=460, coloraxis_showscale=False)
         st.plotly_chart(fig, use_container_width=True)
