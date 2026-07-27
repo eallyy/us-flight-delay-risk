@@ -181,8 +181,9 @@ with tab_when:
         fig.add_annotation(x=pd.Timestamp(a), y=52, text=f"<b>{label}</b>",
                            font=dict(size=10, color=ORANGE), showarrow=False, xanchor="left")
     fig.update_layout(
-        title="<b>Summer storm season strains the network more than any holiday</b>"
-              "<br><sup>daily % delayed (grey) and 7-day average (blue)</sup>",
+        title="<b>Every seasonal peak beats the average — but the worst week was a "
+              "March storm, not a holiday</b>"
+              "<br><sup>daily % delayed (grey) and 7-day average (blue) · holiday windows shaded</sup>",
         yaxis_title="% delayed", height=380)
     st.plotly_chart(fig, use_container_width=True)
 

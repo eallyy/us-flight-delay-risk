@@ -63,6 +63,8 @@ pio.templates["clean"] = go.layout.Template(
     )
 )
 pio.templates.default = "clean"
+# Embed plotly.js in every output so the figures survive an HTML export and open offline.
+pio.renderers.default = "notebook"
 
 df = pd.read_parquet("../data/flights_2025_2026.parquet")
 df["ym"] = df["FlightDate"].dt.to_period("M").astype(str)
@@ -353,9 +355,10 @@ fig.add_annotation(x=ap.weather.max(), y=my, text="weather-exposed →", showarr
                    font=dict(color=GREY, size=11), yshift=-14, xanchor="right")
 fig.add_annotation(x=mx, y=ap.nas.max(), text="↑ congestion-driven", showarrow=False,
                    font=dict(color=GREY, size=11), xshift=6, xanchor="left")
+top_nas, top_wx = ap.loc[ap.nas.idxmax(), "Origin"], ap.loc[ap.weather.idxmax(), "Origin"]
 fig.update_layout(
-    title="<b>Two different diseases: NYC airports suffer congestion, "
-          "the South suffers weather</b><br>"
+    title=f"<b>Two different diseases: {top_nas} is choked by airspace congestion, "
+          f"{top_wx} by weather</b><br>"
           "<sup>30 busiest airports · x = weather-delay min/flight, y = airspace-delay min/flight · color = % delayed</sup>",
     xaxis_title="weather delay (min per flight)", yaxis_title="airspace/NAS delay (min per flight)",
     height=520)
@@ -430,8 +433,9 @@ fig.show()
 """)
 
 md("""
-## Q11. Holiday travel: which peaks actually break the system?
-Everyone fears Thanksgiving. The data says fear summer thunderstorm season more.
+## Q11. Which peaks actually break the system — holidays, or something else?
+Everyone books around Thanksgiving. We compare the recurring seasonal peaks against
+each other and against the year's genuine outliers.
 """)
 
 code("""
@@ -449,14 +453,35 @@ for label, (a, b) in HOLIDAYS.items():
     fig.add_annotation(x=pd.Timestamp(a) + (pd.Timestamp(b) - pd.Timestamp(a)) / 2,
                        y=daily.max() * 0.97, text=f"<b>{label}</b>",
                        font=dict(size=10, color=ORANGE), showarrow=False)
-peak_day = daily.idxmax()
-fig.add_annotation(x=peak_day, y=daily.max(), text=f"worst day: {peak_day:%b %d} ({daily.max():.0f}%)",
-                   arrowcolor=GREY, font=dict(size=10), ax=40, ay=-25)
+peak_week = roll.idxmax()
+fig.add_annotation(x=peak_week, y=roll.max(), ax=-30, ay=-38, arrowcolor=DARK,
+                   text=f"<b>worst week: {peak_week:%b %d}</b> ({roll.max():.0f}%)",
+                   font=dict(size=11, color=DARK))
+baseline = daily.mean()
+fig.add_hline(y=baseline, line=dict(color=GREY, dash="dot"))
+fig.add_annotation(x=daily.index[12], y=baseline, yshift=-16, xanchor="left", showarrow=False,
+                   text=f"year-round average {baseline:.0f}%", font=dict(size=11, color=GREY))
+windows = {k: daily.loc[a:b].mean() for k, (a, b) in HOLIDAYS.items()}
+windows["Summer (Jun-Aug)"] = daily.loc["2025-06-01":"2025-08-31"].mean()
+worst_window = max(windows, key=windows.get)
 fig.update_layout(
-    title="<b>Summer storm season strains the network more than any holiday</b><br>"
+    title=f"<b>The year's worst week was not a holiday — a {peak_week:%B} storm system "
+          f"pushed delays to {roll.max():.0f}%</b><br>"
           "<sup>daily % of arrivals delayed ≥15 min (grey) with 7-day average (blue) · holiday windows shaded</sup>",
     yaxis_title="% delayed", height=440)
 fig.show()
+for k, v in sorted(windows.items(), key=lambda kv: -kv[1]):
+    print(f"{k:20s} {v:5.1f}%   ({v - baseline:+.1f} pts vs year-round average)")
+""")
+
+md("""
+**Reading it correctly.** Every recurring peak sits above the year-round average, but
+they are not equal: the Christmas/New Year window is the worst of the recurring peaks —
+worse than the summer thunderstorm months and clearly worse than Thanksgiving, the one
+travellers actually dread. And no recurring peak matches the genuine outlier: a single
+mid-March storm system produced both the worst week and the worst single day of the
+year. Seasonal planning handles the peaks; only buffers and rebooking capacity handle
+the outlier.
 """)
 
 md("""
