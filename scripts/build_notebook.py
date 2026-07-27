@@ -324,7 +324,7 @@ print(f"padding vs distance: {rp.padding.corr(rp.dist):+.2f} - airlines pad long
 md("""
 **Reading it correctly.** The trend is flat and slightly *positive* — padding does not
 buy punctuality. The confound explains why: padding tracks route difficulty
-(correlation with distance is strong). Airlines add slack precisely where flying is
+(it correlates with route distance at r = +0.57). Airlines add slack precisely where flying is
 long and hubs are congested, and that slack is only enough to keep those routes near
 the average — never down to the reliability of a short, simple hop. Padding absorbs
 delay; it does not prevent it.
@@ -520,11 +520,13 @@ md("""
 # Conclusions
 
 1. **Delay is structural, not random.** Risk concentrates in identifiable carriers
-   (ULCCs degrade hardest in summer), regions (Northeast + Florida), hours (evening)
-   and routes.
-2. **The cascade is the system's core disease** — roughly a third of all delay minutes
-   are inherited from late aircraft, and the inherited share grows all day. This is why
-   the morning rule works.
+   (Frontier and JetBlue run ~28% late year-round against Delta's ~20%), regions
+   (Chicago, the Northeast corridor and Florida), hours (evening) and routes. Seasonality
+   is carrier-specific rather than universal: American and United lose the most ground in
+   summer, while Spirit and JetBlue are at their worst in winter.
+2. **The cascade is the system's core disease** — nearly 40% of all delay minutes are
+   inherited from late aircraft, and the inherited share climbs to about 45% by evening.
+   This is why the morning rule works.
 3. **The airline's own defence is limited.** Schedule padding tracks route difficulty
    rather than curing it, so the fix has to come from the schedule structure
    (congestion) or from buffers where weather dominates — the two diseases need
