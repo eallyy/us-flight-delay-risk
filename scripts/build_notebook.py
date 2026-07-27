@@ -353,8 +353,8 @@ fig.add_vline(x=mx, line=dict(color=LIGHTGREY, dash="dot"))
 fig.add_hline(y=my, line=dict(color=LIGHTGREY, dash="dot"))
 fig.add_annotation(x=ap.weather.max(), y=my, text="weather-exposed →", showarrow=False,
                    font=dict(color=GREY, size=11), yshift=-14, xanchor="right")
-fig.add_annotation(x=mx, y=ap.nas.max(), text="↑ congestion-driven", showarrow=False,
-                   font=dict(color=GREY, size=11), xshift=6, xanchor="left")
+fig.add_annotation(x=ap.weather.min(), y=ap.nas.max(), text="↑ congestion-driven", showarrow=False,
+                   font=dict(color=GREY, size=11), xanchor="left")
 top_nas, top_wx = ap.loc[ap.nas.idxmax(), "Origin"], ap.loc[ap.weather.idxmax(), "Origin"]
 fig.update_layout(
     title=f"<b>Two different diseases: {top_nas} is choked by airspace congestion, "
