@@ -277,9 +277,10 @@ fig.show()
 """)
 
 md("""
-## Q7. Do airlines pad their schedules — and does padding buy punctuality?
+## Q7. Can airlines buy punctuality with schedule padding?
 Block-time padding (scheduled minus actual flying time) is the airline's insurance
-policy. Who pays for it, and does it work?
+policy against delay. If padding worked as insurance, the most-padded routes should be
+the most punctual. We test that directly.
 """)
 
 code("""
@@ -292,21 +293,39 @@ rp = (flown.dropna(subset=["ActualElapsedTime"])
 rp["delayed"] *= 100
 corr = rp.padding.corr(rp.delayed)
 
+rp["padded"] = rp.padding >= rp.padding.median()
+
 fig = px.scatter(rp, x="padding", y="delayed", size="flights", size_max=26,
-                 color_discrete_sequence=[GREY], hover_name="route", opacity=0.65)
+                 color_discrete_sequence=[GREY], hover_name="route", opacity=0.6)
 b1, b0 = np.polyfit(rp.padding, rp.delayed, 1)
 xs = np.linspace(rp.padding.min(), rp.padding.max(), 50)
-fig.add_scatter(x=xs, y=b0 + b1 * xs, mode="lines", line=dict(color=BLUE, width=2.5))
-best = rp.nlargest(3, "padding")
-for _, r in best.iterrows():
+fig.add_scatter(x=xs, y=b0 + b1 * xs, mode="lines", line=dict(color=ORANGE, width=2.5))
+lean = rp.nsmallest(5, "padding")
+fig.add_scatter(x=lean.padding, y=lean.delayed, mode="markers",
+                marker=dict(color=BLUE, size=12), hovertext=lean.route)
+fig.add_annotation(x=lean.padding.median(), y=lean.delayed.max(), ax=55, ay=-40,
+                   text="<b>Hawaiian inter-island hops</b><br>barely padded, most punctual",
+                   font=dict(size=10, color=BLUE), arrowcolor=BLUE)
+for _, r in rp.nlargest(2, "padding").iterrows():
     fig.add_annotation(x=r.padding, y=r.delayed, text=r.route, font=dict(size=10, color=DARK),
-                       arrowcolor=GREY, ax=0, ay=-22)
+                       arrowcolor=GREY, ax=0, ay=-24)
 fig.update_layout(
-    title=f"<b>Padding works: each extra median minute of schedule slack cuts delay risk "
-          f"(r = {corr:.2f})</b><br>"
+    title=f"<b>Padding is a symptom, not a cure — the most-padded routes are no more "
+          f"punctual (r = {corr:+.2f})</b><br>"
           "<sup>100 busiest routes · x = median (scheduled − actual) block time, y = % delayed · bubble = volume</sup>",
     xaxis_title="median schedule padding (min)", yaxis_title="% delayed", height=470)
 fig.show()
+print(f"correlation padding vs %delayed: {corr:+.3f} (flat)")
+print(f"padding vs distance: {rp.padding.corr(rp.dist):+.2f} - airlines pad long, hard routes")
+""")
+
+md("""
+**Reading it correctly.** The trend is flat and slightly *positive* — padding does not
+buy punctuality. The confound explains why: padding tracks route difficulty
+(correlation with distance is strong). Airlines add slack precisely where flying is
+long and hubs are congested, and that slack is only enough to keep those routes near
+the average — never down to the reliability of a short, simple hop. Padding absorbs
+delay; it does not prevent it.
 """)
 
 md("""
@@ -481,9 +500,13 @@ md("""
 2. **The cascade is the system's core disease** — roughly a third of all delay minutes
    are inherited from late aircraft, and the inherited share grows all day. This is why
    the morning rule works.
-3. **Travelers have real agency.** On the biggest routes, picking the right
-   carrier + departure window saves double-digit expected minutes; padding and
-   composite scores make risk quantifiable.
+3. **The airline's own defence is limited.** Schedule padding tracks route difficulty
+   rather than curing it, so the fix has to come from the schedule structure
+   (congestion) or from buffers where weather dominates — the two diseases need
+   different medicine.
+4. **Travelers have real agency.** On the biggest routes, picking the right
+   carrier + departure window saves double-digit expected minutes, and a composite
+   score makes route risk a single bookable number.
 
 **Limitations.** One year of data (no COVID-era baseline); cause attribution is
 carrier-reported; estimated relationships are correlational, not causal.
